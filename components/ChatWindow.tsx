@@ -1,21 +1,26 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Settings, MessageSquare } from 'lucide-react';
 import { sendMessageToNPC } from '../services/gemini';
 
 interface Message {
-  id: number;
+  id: string;
   sender: 'User' | 'Mostafa' | 'System';
   text: string;
 }
 
+const generateId = () => crypto.randomUUID();
+
 const ChatWindow: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, sender: 'System', text: 'Welcome to the server. Mostafa is online.' },
-    { id: 2, sender: 'Mostafa', text: 'LFG: Need help with a complex React useEffect hook? PM me.' }
+    { id: generateId(), sender: 'System', text: 'Welcome to the server. Mostafa is online.' },
+    { id: generateId(), sender: 'Mostafa', text: 'LFG: Need help with a complex React useEffect hook? PM me.' }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,33 +30,55 @@ const ChatWindow: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
+  // Track component mount status to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const handleSend = useCallback(async () => {
     if (!inputValue.trim()) return;
 
-    const userMsg: Message = { id: Date.now(), sender: 'User', text: inputValue };
+    const userMsg: Message = { id: generateId(), sender: 'User', text: inputValue };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
 
-    // Prepare history for API
-    const history = messages
+    // Prepare history for API using ref to get current messages, including the new user message
+    const allMessages = [...messagesRef.current, userMsg];
+    const history = allMessages
         .filter(m => m.sender !== 'System')
         .map(m => ({
             role: m.sender === 'User' ? 'user' : 'model',
             parts: [{ text: m.text }]
         }));
 
-    const responseText = await sendMessageToNPC(history, userMsg.text);
-    
-    setIsTyping(false);
-    
-    if (responseText) {
-        setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'Mostafa', text: responseText }]);
+    try {
+      const responseText = await sendMessageToNPC(history, userMsg.text);
+      
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setIsTyping(false);
+        
+        if (responseText) {
+            setMessages(prev => [...prev, { id: generateId(), sender: 'Mostafa', text: responseText }]);
+        }
+      }
+    } catch (error) {
+      // Handle any errors that weren't caught in sendMessageToNPC
+      console.error("Chat error:", error);
+      if (isMountedRef.current) {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { id: generateId(), sender: 'System', text: '*Connection interrupted*' }]);
+      }
     }
-  };
+  }, [inputValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSend();
+    if (e.key === 'Enter') {
+      void handleSend();
+    }
   };
 
   return (
@@ -102,7 +129,7 @@ const ChatWindow: React.FC = () => {
                 placeholder="Type here..."
             />
             <button 
-                onClick={handleSend}
+                onClick={() => void handleSend()}
                 className="text-cyan-500 hover:text-cyan-300 transition-colors"
             >
                 <Send size={16} />
