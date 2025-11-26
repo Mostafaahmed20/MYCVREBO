@@ -8,6 +8,8 @@ interface Message {
   text: string;
 }
 
+let nextMessageId = 3; // Start after initial messages
+
 const ChatWindow: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     { id: 1, sender: 'System', text: 'Welcome to the server. Mostafa is online.' },
@@ -17,6 +19,8 @@ const ChatWindow: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,7 +32,6 @@ const ChatWindow: React.FC = () => {
 
   // Track component mount status to prevent state updates after unmount
   useEffect(() => {
-    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
     };
@@ -37,13 +40,15 @@ const ChatWindow: React.FC = () => {
   const handleSend = useCallback(async () => {
     if (!inputValue.trim()) return;
 
-    const userMsg: Message = { id: Date.now(), sender: 'User', text: inputValue };
+    const userMsgId = nextMessageId++;
+    const userMsg: Message = { id: userMsgId, sender: 'User', text: inputValue };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
 
-    // Prepare history for API
-    const history = messages
+    // Prepare history for API using ref to get current messages, including the new user message
+    const allMessages = [...messagesRef.current, userMsg];
+    const history = allMessages
         .filter(m => m.sender !== 'System')
         .map(m => ({
             role: m.sender === 'User' ? 'user' : 'model',
@@ -58,7 +63,7 @@ const ChatWindow: React.FC = () => {
         setIsTyping(false);
         
         if (responseText) {
-            setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'Mostafa', text: responseText }]);
+            setMessages(prev => [...prev, { id: nextMessageId++, sender: 'Mostafa', text: responseText }]);
         }
       }
     } catch (error) {
@@ -66,10 +71,10 @@ const ChatWindow: React.FC = () => {
       console.error("Chat error:", error);
       if (isMountedRef.current) {
         setIsTyping(false);
-        setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'System', text: '*Connection interrupted*' }]);
+        setMessages(prev => [...prev, { id: nextMessageId++, sender: 'System', text: '*Connection interrupted*' }]);
       }
     }
-  }, [inputValue, messages]);
+  }, [inputValue]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
