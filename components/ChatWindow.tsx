@@ -3,17 +3,17 @@ import { Send, Settings, MessageSquare } from 'lucide-react';
 import { sendMessageToNPC } from '../services/gemini';
 
 interface Message {
-  id: number;
+  id: string;
   sender: 'User' | 'Mostafa' | 'System';
   text: string;
 }
 
-let nextMessageId = 3; // Start after initial messages
+const generateId = () => crypto.randomUUID();
 
 const ChatWindow: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
-    { id: 1, sender: 'System', text: 'Welcome to the server. Mostafa is online.' },
-    { id: 2, sender: 'Mostafa', text: 'LFG: Need help with a complex React useEffect hook? PM me.' }
+    { id: generateId(), sender: 'System', text: 'Welcome to the server. Mostafa is online.' },
+    { id: generateId(), sender: 'Mostafa', text: 'LFG: Need help with a complex React useEffect hook? PM me.' }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -40,8 +40,7 @@ const ChatWindow: React.FC = () => {
   const handleSend = useCallback(async () => {
     if (!inputValue.trim()) return;
 
-    const userMsgId = nextMessageId++;
-    const userMsg: Message = { id: userMsgId, sender: 'User', text: inputValue };
+    const userMsg: Message = { id: generateId(), sender: 'User', text: inputValue };
     setMessages(prev => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
@@ -63,7 +62,7 @@ const ChatWindow: React.FC = () => {
         setIsTyping(false);
         
         if (responseText) {
-            setMessages(prev => [...prev, { id: nextMessageId++, sender: 'Mostafa', text: responseText }]);
+            setMessages(prev => [...prev, { id: generateId(), sender: 'Mostafa', text: responseText }]);
         }
       }
     } catch (error) {
@@ -71,7 +70,7 @@ const ChatWindow: React.FC = () => {
       console.error("Chat error:", error);
       if (isMountedRef.current) {
         setIsTyping(false);
-        setMessages(prev => [...prev, { id: nextMessageId++, sender: 'System', text: '*Connection interrupted*' }]);
+        setMessages(prev => [...prev, { id: generateId(), sender: 'System', text: '*Connection interrupted*' }]);
       }
     }
   }, [inputValue]);
