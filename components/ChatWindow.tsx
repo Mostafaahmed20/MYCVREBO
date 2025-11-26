@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Settings, MessageSquare } from 'lucide-react';
 import { sendMessageToNPC } from '../services/gemini';
 
@@ -16,6 +16,7 @@ const ChatWindow: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,7 +26,15 @@ const ChatWindow: React.FC = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
+  // Track component mount status to prevent state updates after unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const handleSend = useCallback(async () => {
     if (!inputValue.trim()) return;
 
     const userMsg: Message = { id: Date.now(), sender: 'User', text: inputValue };
@@ -41,17 +50,31 @@ const ChatWindow: React.FC = () => {
             parts: [{ text: m.text }]
         }));
 
-    const responseText = await sendMessageToNPC(history, userMsg.text);
-    
-    setIsTyping(false);
-    
-    if (responseText) {
-        setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'Mostafa', text: responseText }]);
+    try {
+      const responseText = await sendMessageToNPC(history, userMsg.text);
+      
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setIsTyping(false);
+        
+        if (responseText) {
+            setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'Mostafa', text: responseText }]);
+        }
+      }
+    } catch (error) {
+      // Handle any errors that weren't caught in sendMessageToNPC
+      console.error("Chat error:", error);
+      if (isMountedRef.current) {
+        setIsTyping(false);
+        setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'System', text: '*Connection interrupted*' }]);
+      }
     }
-  };
+  }, [inputValue, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSend();
+    if (e.key === 'Enter') {
+      void handleSend();
+    }
   };
 
   return (
@@ -102,7 +125,7 @@ const ChatWindow: React.FC = () => {
                 placeholder="Type here..."
             />
             <button 
-                onClick={handleSend}
+                onClick={() => void handleSend()}
                 className="text-cyan-500 hover:text-cyan-300 transition-colors"
             >
                 <Send size={16} />
