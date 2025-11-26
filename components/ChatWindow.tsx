@@ -61,7 +61,7 @@ const ChatWindow: React.FC = () => {
         <div className="bg-slate-900 p-2 border-b border-slate-700 flex justify-between items-center">
             <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Global Chat</span>
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Chat</span>
             </div>
             <Settings size={14} className="text-slate-500 cursor-pointer hover:text-slate-300" />
         </div>

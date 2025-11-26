@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import CharacterPanel from './components/CharacterPanel';
-import ChatWindow from './components/ChatWindow';
 import Tooltip from './components/Tooltip';
 import { Item } from './types';
 
@@ -38,10 +37,6 @@ function App() {
         {/* Character Panel (Main Window) */}
         <CharacterPanel onHoverItem={handleHoverItem} />
 
-        {/* Bottom Section: Chat */}
-        <div className="w-full max-w-4xl">
-            <ChatWindow />
-        </div>
       </div>
 
       {/* Global Tooltip */}

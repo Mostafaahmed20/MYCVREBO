@@ -272,24 +272,45 @@ const CharacterPanel: React.FC<CharacterPanelProps> = ({ onHoverItem }) => {
                      <div className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest mb-2 border-b border-yellow-900/30 pb-1">
                          Work Experience
                      </div>
-                     {WORK_EXPERIENCE.map((exp, idx) => (
-                         <div key={idx} className="relative pl-4 border-l-2 border-slate-700 hover:border-green-500 transition-colors pb-4 last:pb-0">
-                             <div className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-slate-800 border border-slate-600"></div>
-                             
-                             <h4 className="text-sm font-bold text-white leading-none">{exp.title}</h4>
-                             <div className="flex items-center gap-1 text-xs text-green-400 font-mono mt-1">
-                                 <Briefcase size={10} />
-                                 <span>{exp.company}</span>
+                     {WORK_EXPERIENCE.map((exp, idx) => {
+                         const isCurrent = exp.period === 'Present' || exp.period.toLowerCase().includes('present');
+                         
+                         return (
+                             <div key={idx} className={`relative pl-4 border-l-2 transition-all ${
+                                 isCurrent 
+                                     ? 'border-yellow-500 bg-yellow-900/10 -mr-2 pr-2 py-3 rounded-r border-l-4' 
+                                     : 'border-slate-700 hover:border-green-500 pb-4 last:pb-0'
+                             }`}>
+                                 {/* Timeline Dot */}
+                                 <div className={`absolute -left-[5px] rounded-full border z-10 ${
+                                     isCurrent 
+                                         ? 'top-4 -left-[6px] w-2.5 h-2.5 bg-yellow-400 border-yellow-200 shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse' 
+                                         : 'top-0 w-2 h-2 bg-slate-800 border-slate-600'
+                                 }`}></div>
+                                 
+                                 {/* Content */}
+                                 <h4 className={`text-sm font-bold leading-none flex items-center gap-2 ${isCurrent ? 'text-yellow-400' : 'text-white'}`}>
+                                     {exp.title}
+                                     {isCurrent && (
+                                         <span className="text-[9px] bg-red-600 text-white px-1.5 rounded border border-red-400 shadow-sm animate-pulse">
+                                             ACTIVE
+                                         </span>
+                                     )}
+                                 </h4>
+                                 <div className={`flex items-center gap-1 text-xs font-mono mt-1 ${isCurrent ? 'text-yellow-200' : 'text-green-400'}`}>
+                                     <Briefcase size={10} />
+                                     <span>{exp.company}</span>
+                                 </div>
+                                 <div className={`flex items-center gap-1 text-[10px] mb-2 ${isCurrent ? 'text-yellow-600' : 'text-slate-500'}`}>
+                                     <ScrollText size={10} />
+                                     <span>{exp.period}</span>
+                                 </div>
+                                 <p className={`text-xs leading-snug ${isCurrent ? 'text-slate-200' : 'text-slate-400'}`}>
+                                     {exp.description}
+                                 </p>
                              </div>
-                             <div className="flex items-center gap-1 text-[10px] text-slate-500 mb-2">
-                                 <ScrollText size={10} />
-                                 <span>{exp.period}</span>
-                             </div>
-                             <p className="text-xs text-slate-400 leading-snug">
-                                 {exp.description}
-                             </p>
-                         </div>
-                     ))}
+                         );
+                     })}
                  </div>
              )}
 
